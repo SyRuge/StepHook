@@ -1,16 +1,13 @@
 package com.xcx.stephook
 
 import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.widget.Button
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodHook.MethodHookParam
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
-import de.robv.android.xposed.callbacks.XC_LoadPackage
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 import java.util.*
 
@@ -20,9 +17,9 @@ import java.util.*
 class MyStepHook : IXposedHookLoadPackage {
 
     private var isNeedRandom = true
-    private val TAG = "MyStepHook"
+    private val TAG = "xcx"
 
-    override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
+    override fun handleLoadPackage(lpparam: LoadPackageParam) {
         if (lpparam.packageName == "com.eg.android.AlipayGphone") {
             hookAlipayStep(lpparam)
         } else if (lpparam.packageName == "com.tencent.mm") {
@@ -34,7 +31,6 @@ class MyStepHook : IXposedHookLoadPackage {
 
             hookRpcCall(lpparam)
         }
-
     }
 
     private fun hookRpcCall(lpparam: LoadPackageParam) {
@@ -105,10 +101,7 @@ class MyStepHook : IXposedHookLoadPackage {
                     }
                 })
             hookRpcCallSuccess = true
-            Log.i(
-                TAG,
-                "hook old $rpcCall successfully"
-            )
+            Log.i(TAG, "hook old $rpcCall successfully")
         } catch (t: Throwable) {
             Log.e(TAG, "hook old $rpcCall err: $t")
             //Log.printStackTrace(TAG, e);
@@ -133,65 +126,20 @@ class MyStepHook : IXposedHookLoadPackage {
                     Boolean::class.javaPrimitiveType,
                     Int::class.javaPrimitiveType,
                     String::class.java, object : XC_MethodHook() {
-                        @Throws(
-                            Throwable::class
-                        )
                         override fun afterHookedMethod(param: MethodHookParam) {
                             afterHookRpcCall(param, loader)
                         }
                     })
-                Log.i(
-                    TAG, "hook $rpcCall successfully"
-                )
+                Log.i(TAG, "hook $rpcCall successfully")
             } catch (t: Throwable) {
-                Log.i(
-                    TAG,
-                    "hook $rpcCall err:"
-                )
+                Log.i(TAG, "hook $rpcCall err:")
 //            Log.printStackTrace(TAG, t)
             }
         }
 
     }
 
-    private fun hookStartActivity(lpparam: XC_LoadPackage.LoadPackageParam) {
-
-        val c1 = XposedHelpers.findClass("android.app.Activity", lpparam.classLoader)
-        XposedBridge.hookAllMethods(c1, "startActivity", object : XC_MethodHook() {
-            override fun beforeHookedMethod(param: MethodHookParam) {
-                val intent = param.args[0] as Intent
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                XposedBridge.log("MyStepHook: $intent")
-                super.beforeHookedMethod(param)
-            }
-        })
-
-        val c2 = XposedHelpers.findClass("android.content.Intent", lpparam.classLoader)
-
-        XposedBridge.hookAllMethods(c2, "putExtra", object : XC_MethodHook() {
-
-            override fun afterHookedMethod(param: MethodHookParam) {
-                val key = param.args[0] as String
-                val value = param.args[1].toString()
-                XposedBridge.log("MyStepHook: key = $key, value = $value")
-                super.afterHookedMethod(param)
-                XposedBridge.log("MyStepHook: key = $key, value = $value")
-            }
-        })
-
-        XposedBridge.hookAllMethods(c2, "putExtras", object : XC_MethodHook() {
-
-            override fun afterHookedMethod(param: MethodHookParam) {
-                val b = param.args[0] as Bundle
-                XposedBridge.log("MyStepHook: putExtras: $b")
-                super.afterHookedMethod(param)
-            }
-        })
-
-
-    }
-
-    private fun hookAlipayStep(lpparam: XC_LoadPackage.LoadPackageParam) {
+    private fun hookAlipayStep(lpparam: LoadPackageParam) {
         val c1 = XposedHelpers.findClass(
             "android.hardware.SystemSensorManager\$SensorEventQueue",
             lpparam.classLoader
@@ -230,7 +178,7 @@ class MyStepHook : IXposedHookLoadPackage {
 
     }
 
-    private fun hookWechatStep(lpparam: XC_LoadPackage.LoadPackageParam) {
+    private fun hookWechatStep(lpparam: LoadPackageParam) {
         val c1 = XposedHelpers.findClass(
             "android.hardware.SystemSensorManager\$SensorEventQueue",
             lpparam.classLoader
@@ -273,34 +221,6 @@ class MyStepHook : IXposedHookLoadPackage {
         })
     }
 
-    private fun testHook(lpparam: XC_LoadPackage.LoadPackageParam) {
-        XposedHelpers.findAndHookMethod("com.xcx.myandroiddemo.MainActivity",
-            lpparam.classLoader, "onCreate", Bundle::class.java, object : XC_MethodHook() {
-                @Throws(Throwable::class)
-                override fun beforeHookedMethod(param: XC_MethodHook.MethodHookParam?) {
-                    super.beforeHookedMethod(param)
-                }
-
-                @Throws(Throwable::class)
-                override fun afterHookedMethod(param: XC_MethodHook.MethodHookParam?) {
-                    super.afterHookedMethod(param)
-
-                    try {
-                        val c = lpparam.classLoader.loadClass("com.xcx.myandroiddemo.MainActivity")
-                        val field = c.getDeclaredField("bt_test_view")
-                        field.isAccessible = true
-                        //                                XposedBridge.log("zzz");
-                        val bt = field.get(param!!.thisObject) as Button
-                        bt.text = "xcx"
-                    } catch (e: Exception) {
-                        XposedBridge.log(e.toString())
-
-                    }
-
-                }
-            })
-    }
-
     private fun afterHookRpcCall(param: MethodHookParam, loader: ClassLoader) {
         val args0 = param.args[0] as String
         val args1 = param.args[1] as String
@@ -310,18 +230,18 @@ class MyStepHook : IXposedHookLoadPackage {
             Log.d(TAG, "afterHookRpcCall null")
             return
         }
-        Log.d(TAG,"===============args0===================")
+        /*Log.d(TAG,"===============args0===================")
         Log.d(TAG, "$args0")
         Log.d(TAG,"===============args0===================")
         Log.i(TAG,"===============args1===================")
         Log.i(TAG, "$args1")
-        Log.i(TAG,"===============args1===================")
+        Log.i(TAG,"===============args1===================")*/
         val resp: Any? = param.result
         if (resp != null) {
             val response = RpcCall.getResponse(resp)
-            Log.d(TAG,"===============response===================")
+            /*Log.d(TAG,"===============response===================")
             Log.d(TAG, "response: $response")
-            Log.d(TAG,"===============response===================")
+            Log.d(TAG,"===============response===================")*/
             AntForest.saveUserIdAndName(args0, response)
             AntForest.start(loader, args0, args1, response)
 

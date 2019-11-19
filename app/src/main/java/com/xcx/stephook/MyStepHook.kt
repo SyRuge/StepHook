@@ -208,14 +208,12 @@ class MyStepHook : IXposedHookLoadPackage {
                     }
                 } else {//正常计步
                     isNeedRandom = true
-                    val step = (hour - 6) * 60 * 60 + min * 60 + second
-                    if (step <= 60000) {
-                        (param.args[1] as FloatArray)[0] = step.toFloat()
+//                    val step = (hour - 6) * 60 * 60 + min * 60 + second
+                    val winterStep = (hour - 6) * 60 * (60 / 2) + min * (60 / 2) + second / 2
+                    if (winterStep <= 60000) {
+                        (param.args[1] as FloatArray)[0] = winterStep.toFloat()
                     }
                 }
-
-                XposedBridge.log("hook wechat now step: " + (param.args[1] as FloatArray)[0])
-
                 super.beforeHookedMethod(param)
             }
         })
